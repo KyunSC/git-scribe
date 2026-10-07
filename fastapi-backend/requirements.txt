@@ -1,2 +1,11 @@
 fastapi
 uvicorn[standard]
+langgraph
+langgraph-checkpoint-sqlite
+langchain-core
+langchain-ollama
+gitpython
+pydantic
+typer
+python-dotenv
+pytest
