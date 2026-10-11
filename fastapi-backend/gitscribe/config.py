@@ -5,8 +5,12 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from functools import lru_cache
+from pathlib import Path
 
 from dotenv import load_dotenv
+
+# One .env at the repo root, shared with the frontend.
+ENV_FILE = Path(__file__).resolve().parents[2] / ".env"
 
 
 def _bool(value: str) -> bool:
@@ -24,6 +28,9 @@ class Settings:
     max_diff_chars: int
     max_concurrency: int
     db_path: str
+    cors_origins: tuple[str, ...]
+    repos_dir: str
+    github_token: str | None
 
     @property
     def max_prompt_chars(self) -> int:
@@ -37,7 +44,7 @@ class Settings:
 
 @lru_cache
 def get_settings() -> Settings:
-    load_dotenv()
+    load_dotenv(ENV_FILE)
     env = os.environ.get
     return Settings(
         llm_provider=env("LLM_PROVIDER", "ollama"),
@@ -49,4 +56,9 @@ def get_settings() -> Settings:
         max_diff_chars=int(env("MAX_DIFF_CHARS", "20000")),
         max_concurrency=int(env("MAX_CONCURRENCY", "2")),
         db_path=env("DB_PATH", "gitscribe.db"),
+        cors_origins=tuple(
+            o.strip() for o in env("CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(",") if o.strip()
+        ),
+        repos_dir=env("REPOS_DIR", "repos"),
+        github_token=env("GITHUB_TOKEN") or None,
     )

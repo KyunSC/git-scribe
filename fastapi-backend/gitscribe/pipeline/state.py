@@ -9,6 +9,7 @@ from typing import Annotated, TypedDict
 class PipelineState(TypedDict, total=False):
     # inputs
     repo_path: str
+    rev: str  # history to read: a sha or ref, default HEAD
     since_sha: str | None
     batch_by: str  # "pr" | "tag" | "week"
     output: str  # "changelog"

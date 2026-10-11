@@ -1,13 +1,3 @@
-from fastapi import FastAPI
+from gitscribe.api.app import create_app
 
-app = FastAPI(title="fastapi-backend")
-
-
-@app.get("/")
-def read_root():
-    return {"message": "Hello, FastAPI"}
-
-
-@app.get("/health")
-def health():
-    return {"status": "ok"}
+app = create_app()

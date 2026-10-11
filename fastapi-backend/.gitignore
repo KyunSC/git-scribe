@@ -6,5 +6,6 @@ __pycache__/
 *.db
 *.db-shm
 *.db-wal
-output/
+/output/
+/repos/
 .pytest_cache/

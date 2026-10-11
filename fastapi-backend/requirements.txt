@@ -9,3 +9,4 @@ pydantic
 typer
 python-dotenv
 pytest
+httpx

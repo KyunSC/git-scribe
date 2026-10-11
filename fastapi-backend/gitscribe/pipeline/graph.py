@@ -45,8 +45,9 @@ class RunNotFound(Exception):
 
 def load_commits(state: PipelineState) -> dict:
     repo = reader.open_repo(state["repo_path"])
-    commits = reader.read_commits(repo, since_sha=state.get("since_sha"))
-    return {"head_sha": repo.head.commit.hexsha, "commits": [asdict(c) for c in commits]}
+    head_sha = repo.commit(state.get("rev") or "HEAD").hexsha
+    commits = reader.read_commits(repo, since_sha=state.get("since_sha"), rev=head_sha)
+    return {"head_sha": head_sha, "commits": [asdict(c) for c in commits]}
 
 
 def filter_changes(state: PipelineState) -> dict:
@@ -174,8 +175,13 @@ def run_pipeline(
     run_id: str | None = None,
     resume: bool = False,
     on_update: Callable[[str, Any], None] | None = None,
+    rev: str = "HEAD",
+    since_sha: str | None = None,
 ) -> dict:
     """Run (or resume) the pipeline and return the final state.
+
+    `rev` and `since_sha` select the history to document (`since_sha..rev`),
+    e.g. a branch, or a pull request from its fork point to its head.
 
     Each run is its own checkpoint thread `<repo_id>:<run_id>`; resuming a run
     re-executes only the tasks that had not finished. Layer-1 results are also
@@ -199,7 +205,8 @@ def run_pipeline(
         else:
             inputs = {
                 "repo_path": str(Path(repo_path).resolve()),
-                "since_sha": None,
+                "rev": rev,
+                "since_sha": since_sha,
                 "batch_by": batch_by,
                 "output": output,
                 "out_dir": str(Path(out_dir).resolve()),
@@ -209,3 +216,14 @@ def run_pipeline(
                 if on_update:
                     on_update(node, update)
         return graph.get_state(config).values
+
+
+def get_run_state(repo_path: str, run_id: str) -> tuple[dict, bool]:
+    """The latest checkpointed state of a run and whether it ran to completion.
+
+    Works for partial and failed runs too; an unknown run returns `({}, False)`.
+    """
+    config = {"configurable": {"thread_id": f"{repo_id(repo_path)}:{run_id}"}}
+    with sqlite_checkpointer() as saver:
+        snapshot = build_graph(saver).get_state(config)
+    return snapshot.values, bool(snapshot.values) and not snapshot.next

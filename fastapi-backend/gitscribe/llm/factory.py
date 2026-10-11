@@ -22,6 +22,8 @@ T = TypeVar("T", bound=BaseModel)
 
 def model_name(kind: ModelKind) -> str:
     s = get_settings()
+    if s.llm_provider == "fake":
+        return "fake"  # keeps fake results out of the cache entries for real models
     return s.llm_model_fast if kind == "fast" else s.llm_model_strong
 
 
@@ -43,6 +45,10 @@ def get_chat_model(kind: ModelKind = "fast") -> BaseChatModel:
 
 def get_structured_model(kind: ModelKind, schema: type[T]) -> Runnable:
     """A runnable that takes chat messages and returns a validated `schema` instance."""
+    if get_settings().llm_provider == "fake":
+        from gitscribe.llm import fake
+
+        return fake.structured_model(schema)
     return get_chat_model(kind).with_structured_output(schema, method="json_schema")
 
 
